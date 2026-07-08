@@ -16,7 +16,7 @@
 """
 
 from typing import Callable
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ═══════════════════════════════════════════════════════════
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ — не меняйте их
@@ -62,8 +62,9 @@ def fetch_all(urls: list[str], max_workers: int = 4) -> list[str]:
         ['data:a', 'data:b', 'data:c']
     """
     # TODO: реализуйте
-    raise NotImplementedError
-
+    with ThreadPoolExecutor(max_workers = max_workers) as pool:
+        new_urls = list(pool.map(fetch_one, urls))
+        return new_urls
 
 # ═══════════════════════════════════════════════════════════
 # ЗАДАНИЕ 1.2 — Обработка ошибок
@@ -86,7 +87,15 @@ def fetch_all_with_errors(urls: list[str], max_workers: int = 4) -> list[str | N
         - Для остальных — результат fetch_one()
     """
     # TODO: реализуйте
-    raise NotImplementedError
+    with ThreadPoolExecutor(max_workers = max_workers) as pool:
+        new_urls = [None for _ in range(len(urls))]
+        results = list(pool.map(fetch_one, urls))
+        for i in range(len(results)):
+            a = results[i]
+            if "bad" in a:
+                continue
+            new_urls[i] = a
+        return new_urls
 
 
 # ═══════════════════════════════════════════════════════════
@@ -124,4 +133,15 @@ def fetch_all_with_progress(
         # completed[-1] == 3
     """
     # TODO: реализуйте
-    raise NotImplementedError
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        total = len(urls)
+        completed = 0
+        results = []
+        future_to_url = {pool.submit(fetch_one, url): url for url in urls}
+        for future in as_completed(future_to_url):
+            results.append(future.result())
+            completed += 1
+            if progress_callback:
+                progress_callback(completed, total)
+        return results
+        
