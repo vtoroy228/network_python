@@ -17,7 +17,8 @@ multiprocessing.Pool.
 # ═══════════════════════════════════════════════════════════
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ — не меняйте их
 # ═══════════════════════════════════════════════════════════
-
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def is_prime(n: int) -> bool:
     """Проверка числа на простоту (CPU-bound)."""
@@ -50,12 +51,7 @@ def heavy_compute(x: int) -> int:
 
 
 def compute_sequential(numbers: list[int]) -> list[int]:
-    """Вычислить heavy_compute для каждого числа ПОСЛЕДОВАТЕЛЬНО.
-
-    Просто для сравнения с параллельной версией.
-    """
-    # TODO: реализуйте
-    raise NotImplementedError
+    return [heavy_compute(number) for number in numbers]
 
 
 def compute_parallel_pool(numbers: list[int], processes: int = 4) -> list[int]:
@@ -65,9 +61,10 @@ def compute_parallel_pool(numbers: list[int], processes: int = 4) -> list[int]:
         - Использовать Pool(processes) как context manager
         - Результаты в порядке numbers
     """
-    # TODO: реализуйте
-    raise NotImplementedError
-
+    results = []
+    with multiprocessing.Pool(processes) as pool:
+        results = list(pool.map(heavy_compute, numbers))
+    return results
 
 # ═══════════════════════════════════════════════════════════
 # ЗАДАНИЕ 3.2 — ThreadPool vs Pool (сравнение)
@@ -79,5 +76,7 @@ def compute_with_threads(numbers: list[int], workers: int = 4) -> list[int]:
 
     Должно работать МЕДЛЕННЕЕ, чем Pool, из-за GIL.
     """
-    # TODO: реализуйте
-    raise NotImplementedError
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        result = pool.map(heavy_compute, numbers)
+        result = list(result)
+    return result
