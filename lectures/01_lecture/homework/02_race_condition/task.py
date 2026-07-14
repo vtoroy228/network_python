@@ -1,4 +1,4 @@
-"""
+"""..
 Домашнее задание 2: Race Condition и Lock 🔒
 
 Несколько потоков одновременно изменяют общий счётчик.
@@ -15,7 +15,8 @@
 """
 
 import threading
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 # ═══════════════════════════════════════════════════════════
 # ЗАДАНИЕ 2.1 — Имитация гонки
@@ -38,7 +39,10 @@ def increment_with_race(counter: list[int], times: int) -> None:
         - Содержать искусственную задержку между чтением и записью
     """
     # TODO: реализуйте
-    raise NotImplementedError
+    for _ in range(times):
+        current = counter[0]
+        time.sleep(0.0000001)  
+        counter[0] = current + 1  
 
 
 # ═══════════════════════════════════════════════════════════
@@ -57,7 +61,9 @@ def increment_safe(counter: list[int], times: int, lock: threading.Lock) -> None
           (только чтение + запись, не весь цикл)
     """
     # TODO: реализуйте
-    raise NotImplementedError
+    for _ in range(times):
+        with lock:
+            counter[0] += 1
 
 
 # ═══════════════════════════════════════════════════════════
@@ -94,17 +100,19 @@ class BankAccount:
 
     def __init__(self, initial_balance: float = 0.0) -> None:
         self.balance = initial_balance
-        # TODO: добавьте Lock
-        raise NotImplementedError
+        self.lock = threading.Lock()
 
     def deposit(self, amount: float) -> None:
-        # TODO: реализуйте
-        raise NotImplementedError
+        with self.lock:
+            self.balance += amount
 
     def withdraw(self, amount: float) -> None:
-        # TODO: реализуйте
-        raise NotImplementedError
+        with self.lock:
+            if self.balance >= amount:
+                self.balance -= amount
+            else:
+                raise InsufficientFundsError
 
     def get_balance(self) -> float:
-        # TODO: реализуйте
-        raise NotImplementedError
+        with self.lock:
+            return self.balance
