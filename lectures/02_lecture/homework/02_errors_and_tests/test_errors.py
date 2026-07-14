@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from starlette.testclient import TestClient
 
-from solution import app
+from task import app
 
 client = TestClient(app)
 
@@ -175,3 +175,53 @@ class TestErrorResponseFormat:
         data = resp.json()
         assert "detail" in data, "Ответ об ошибке должен содержать detail"
         assert isinstance(data["detail"], str)
+
+
+class TestListItems:
+    def test_list_items_returns_list(self):
+        client.post("/items", json={"name": "List Item"})
+        resp = client.get("/items")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "items" in data
+        assert isinstance(data["items"], list)
+        assert len(data["items"]) > 0
+
+
+class TestCounter:
+    def test_counter_increments(self):
+        created = client.post("/items", json={"name": "Counter"}).json()
+        item_id = created["id"]
+        
+        resp1 = client.get(f"/items/{item_id}/counter")
+        val1 = resp1.json()["counter"]
+        
+        resp2 = client.get(f"/items/{item_id}/counter")
+        val2 = resp2.json()["counter"]
+        
+        assert val2 == val1 + 1
+
+    def test_counter_race_condition(self):
+        import threading
+        
+        created = client.post("/items", json={"name": "Race"}).json()
+        item_id = created["id"]
+        
+        initial_val = client.get(f"/items/{item_id}/counter").json()["counter"]
+        
+        threads = []
+        requests_count = 50
+        
+        def make_request():
+            client.get(f"/items/{item_id}/counter")
+            
+        for _ in range(requests_count):
+            t = threading.Thread(target=make_request)
+            threads.append(t)
+            t.start()
+            
+        for t in threads:
+            t.join()
+            
+        final_val = client.get(f"/items/{item_id}/counter").json()["counter"]
+        assert final_val == initial_val + requests_count + 1
